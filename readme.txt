@@ -2,16 +2,15 @@ RunSimulinkPkg MATLAB Python Package
 
 1. Prerequisites for Deployment 
 
-Verify that MATLAB Runtime(R2022b) is installed.
+Verify that MATLAB Runtime(R2023b) is installed.   
 If not, you can run the MATLAB Runtime installer.
 To find its location, enter
   
     >>mcrinstaller
       
 at the MATLAB prompt.
-NOTE: You will need administrator rights to run the MATLAB Runtime installer. 
 
-Alternatively, download and install the Windows version of the MATLAB Runtime for R2022b 
+Alternatively, download and install the Linux version of the MATLAB Runtime for R2023b 
 from the following link on the MathWorks website:
 
     https://www.mathworks.com/products/compiler/mcr/index.html
@@ -20,7 +19,7 @@ For more information about the MATLAB Runtime and the MATLAB Runtime installer, 
 "Distribute Applications" in the MATLAB Compiler SDK documentation  
 in the MathWorks Documentation Center.
 
-Verify that a Windows version of Python 2.7, 3.8, 3.9, and/or 3.10 is installed.
+Verify that a Linux version of Python 3.9, 3.10, and/or 3.11 is installed.
 
 2. Installing the RunSimulinkPkg Package
 
@@ -39,6 +38,22 @@ the PYTHONPATH environment variable. For details, refer to:
 
     https://docs.python.org/2/install/index.html
 
+C. Set environment variables as follows:
+
+In the following directions, replace MR/R2023b by the directory on the target machine where MATLAB is installed, or MR by the directory where the MATLAB Runtime is installed.
+
+(1) Set the environment variable XAPPLRESDIR to this value:
+
+MR/R2023b/X11/app-defaults
+
+
+(2) If the environment variable LD_LIBRARY_PATH is undefined, set it to the following:
+
+MR/R2023b/runtime/glnxa64:MR/R2023b/bin/glnxa64:MR/R2023b/sys/os/glnxa64:MR/R2023b/sys/opengl/lib/glnxa64
+
+If it is defined, set it to the following:
+
+${LD_LIBRARY_PATH}:MR/R2023b/runtime/glnxa64:MR/R2023b/bin/glnxa64:MR/R2023b/sys/os/glnxa64:MR/R2023b/sys/opengl/lib/glnxa64
 
 3. Using the RunSimulinkPkg Package
 

@@ -1,9 +1,8 @@
-# Copyright 2015-2022 MathWorks, Inc.
+# Copyright 2015-2023 MathWorks, Inc.
 
 
 """ Package for executing deployed MATLAB functions """
 
-from __future__ import print_function
 import atexit
 import glob
 import importlib
@@ -17,9 +16,9 @@ import weakref
 
 class _PathInitializer(object):
     PLATFORM_DICT = {'Windows': ['PATH','dll',''], 'Linux': ['LD_LIBRARY_PATH','so','libmw'], 'Darwin': ['DYLD_LIBRARY_PATH','dylib','libmw']}
-    SUPPORTED_PYTHON_VERSIONS = ['2_7', '3_8', '3_9', '3_10']
-    RUNTIME_VERSION_W_DOTS = '9.13'
-    RUNTIME_VERSION_W_UNDERSCORES = '9_13'
+    SUPPORTED_PYTHON_VERSIONS = ['3_9', '3_10', '3_11']
+    RUNTIME_VERSION_W_DOTS = '23.2'
+    RUNTIME_VERSION_W_UNDERSCORES = '23_2'
     PACKAGE_NAME = 'RunSimulinkPkg'
     
     def set_interpreter_version(self):    
@@ -239,20 +238,60 @@ class _PathInitializer(object):
         self.cppext_handle.terminateApplication()
 
     def import_cppext(self):
-        module_name = "matlabruntimeforpython" + self.interpreter_version
-        self.cppext_handle = importlib.import_module(module_name)
+        firstExceptionMessage = ''
+        secondExceptionMessage = ''
+        diagnosticStr = ''
+        cppext_module_name = "matlabruntimeforpython" + self.interpreter_version
+        try:
+            self.cppext_handle = importlib.import_module(cppext_module_name)
+        except Exception as firstE:
+            firstExceptionMessage = str(firstE)
+            
+        if firstExceptionMessage:
+            import io
+            output = io.StringIO()
+            if self.path_var in os.environ:
+                path_elems = os.environ[self.path_var].split(os.pathsep)
+                norm_path_elems = [os.path.normpath(p) for p in path_elems]
+                path_with_newlines = '\n    '.join(norm_path_elems)
+                print('os.environ[{}]:\n    {}\n'.format(self.path_var, path_with_newlines), file=output)
+            else:
+                print('os.environ[{}] is not set.\n'.format(self.path_var), file=output)
+            dirs = {'bin_dir': self.bin_dir,
+                'extern_bin_dir': self.extern_bin_dir,
+                'pysdk_py_runtime_dir': self.pysdk_py_runtime_dir,
+                'matlab_mod_dist_dir': self.matlab_mod_dist_dir}
+            print('sys.path:', file=output)
+            for path_elem in sys.path:
+                print('    ', *path_elem, sep='', file=output)
+            print('', file=output)
+            import glob
+            for dirname in dirs:
+                norm_dir = os.path.normpath(dirs[dirname])
+                print('{}:'.format(dirname), norm_dir, file=output)
+                glob_expr = '{}{}{}*'.format(dirs[dirname], os.sep, cppext_module_name)
+                glob_output = glob.glob(glob_expr)
+                if glob_output:
+                    print('    glob.glob({}):'.format(glob_expr), file=output)
+                    for g in glob_output:
+                        print('       ', *g, sep='', file=output)
+                else:
+                    print('    glob.glob({}): [none]'.format(glob_expr), file=output)
+                print('', file=output)
+            diagnosticStr = output.getvalue()
+            output.close()
+            secondExceptionMessage = '{}\nDiagnostics:\n{}'.format(firstExceptionMessage, diagnosticStr)
 
-try:
-    _pir = _PathInitializer()
-    _pir.get_paths_from_os()
-    _pir.update_paths()
-    _pir.import_cppext()
-    _pir.import_matlab_pysdk_runtime()
-    _pir.import_matlab()
-except Exception as e:
-    print("Exception caught during initialization of Python interface. Details: {0}".format(e))
-    raise
-    # We let the program exit normally.
+        if secondExceptionMessage:
+            raise ImportError(secondExceptionMessage)
+
+# If an exception is raised, let it propagate normally.
+_pir = _PathInitializer()
+_pir.get_paths_from_os()
+_pir.update_paths()
+_pir.import_cppext()
+_pir.import_matlab_pysdk_runtime()
+_pir.import_matlab()
 
 def initialize():
     """ 
